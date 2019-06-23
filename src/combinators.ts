@@ -5,7 +5,7 @@ export const satisfy = (f: (c: string) => boolean) =>
   Parser(stream => {
     const [x, ...xs] = Array.from(stream);
     if (f(x)) {
-      return right([x, xs.join('')]);
+      return right([xs.join(''), x]);
     }
     return left('unknown parse error');
   });
@@ -32,7 +32,7 @@ const _many = <A>(
 export const many = <A>(p: ParserT<A>) =>
   Parser(stream => right(_many(stream, p, [])));
 
-export const many1 = <A>(p: ParserT<A>) => p.andThenR(many(p));
+export const many1 = <A>(p: ParserT<A>) => p.andThenR(many(p)) as ParserT<A[]>;
 
 export const digit = () =>
   satisfy(c => !Number.isNaN(Number(c))).label('Expected digit');
