@@ -1,11 +1,10 @@
 import { Functor, Monad, Applicative } from './typeclasses';
-import { Either } from 'fp-ts/lib/Either';
+import { Either, right, left } from 'fp-ts/lib/Either';
 
 type ParseResult<A> = Either<string, [string, A]>;
 
-export const Parser = <A>(f: (string: string) => ParseResult<A>) => {
-  return new ParserT<A>(f);
-};
+export const Parser = <A>(f: (string: string) => ParseResult<A>) =>
+  new ParserT<A>(f);
 
 export const Parsers = <A>([p, ...parsers]: ParserT<A>[]) => {
   return Parser(stream => {
@@ -25,6 +24,31 @@ export class ParserT<A> implements Functor<A>, Monad<A>, Applicative<A> {
   constructor(private f: (stream: string) => ParseResult<A>) {}
   parse(stream: string) {
     return this.f(stream);
+  }
+
+  ensure(f: (x: A) => boolean, msg?: string) {
+    return Parser(stream =>
+      this.parse(stream).chain(([s, r]) => {
+        if (f(r)) {
+          return right([s, r]);
+        }
+        return left(msg || 'unknown parse error');
+      })
+    );
+  }
+
+  or(p: ParserT<A>): ParserT<A> {
+    return Parser(stream => {
+      const r = this.parse(stream);
+      if (r.isRight()) {
+        return r;
+      }
+      return p.parse(stream);
+    });
+  }
+
+  label(msg: string) {
+    return Parser(stream => this.parse(stream).mapLeft(() => msg));
   }
 
   fmap<B>(f: (x: A) => B): ParserT<B> {
