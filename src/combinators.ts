@@ -37,4 +37,5 @@ export const many1 = <A>(p: ParserT<A>) => p.andThenR(many(p)) as ParserT<A[]>;
 export const digit = () =>
   satisfy(c => !Number.isNaN(Number(c))).label('Expected digit');
 
-export const integerLiteral = () => many1(digit());
+export const integerLiteral = () =>
+  many1(digit()).fmap(x => Number(x.join('')));

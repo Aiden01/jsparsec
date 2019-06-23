@@ -6,6 +6,13 @@ type ParseResult<A> = Either<string, [string, A]>;
 export const Parser = <A>(f: (string: string) => ParseResult<A>) =>
   new ParserT<A>(f);
 
+const flatten = <A>(arr: A[]): A[] =>
+  arr.reduce(
+    (acc: A[], curr) =>
+      Array.isArray(curr) ? [...acc, ...flatten(curr)] : [...acc, curr],
+    []
+  );
+
 export const Parsers = <A>([p, ...parsers]: ParserT<A>[]) => {
   return Parser(stream => {
     const trans = (e: any) => e as Either<string, [string, [A]]>;
@@ -34,6 +41,14 @@ export class ParserT<A> implements Functor<A>, Monad<A>, Applicative<A> {
         }
         return left(msg || 'unknown parse error');
       })
+    );
+  }
+
+  combine(p: ParserT<A>): ParserT<A[]> {
+    return Parser(stream =>
+      this.parse(stream).chain(([s, r]) =>
+        p.parse(s).map(([ss, r1]) => [ss, flatten([r, r1])])
+      )
     );
   }
 
