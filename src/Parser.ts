@@ -6,6 +6,8 @@ type ParseResult<A> = Either<string, [string, A]>;
 export const Parser = <A>(f: (string: string) => ParseResult<A>) =>
   new ParserT<A>(f);
 
+export const pure = <A>(x: A) => Parser(stream => right([stream, x]));
+
 const flatten = <A>(arr: A[]): A[] =>
   arr.reduce(
     (acc: A[], curr) =>
@@ -31,6 +33,10 @@ export class ParserT<A> implements Functor<A>, Monad<A>, Applicative<A> {
   constructor(private f: (stream: string) => ParseResult<A>) {}
   parse(stream: string) {
     return this.f(stream);
+  }
+
+  noConsume() {
+    return Parser(stream => this.parse(stream).map(([, r]) => [stream, r]));
   }
 
   ensure(f: (x: A) => boolean, msg?: string) {
